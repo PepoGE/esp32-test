@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql');
+const mysql = require('mysql2'); // Changed from mysql to mysql2
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
@@ -9,12 +9,19 @@ app.use(bodyParser.json());
 
 const db = mysql.createConnection({
     host: 'localhost',
-    user: 'tu_usuario',
-    password: 'tu_password',
-    database: 'nombre_db'
+    user: 'root',
+    password: 'pepojess',
+    database: 'sensores'
 });
 
-db.connect();
+// Add proper error handling for database connection
+db.connect(err => {
+    if (err) {
+        console.error('Error connecting to database:', err);
+        return;
+    }
+    console.log('Connected to MySQL database');
+});
 
 // Recibir datos del ESP32
 app.post('/sensor-data', (req, res) => {
