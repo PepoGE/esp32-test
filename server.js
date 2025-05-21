@@ -14,12 +14,32 @@ const pool = new Pool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: process.env.DB_PORT// PostgreSQL default port
+    port: process.env.DB_PORT // PostgreSQL default port
 });
+
+// Initialize database table
+const initializeDatabase = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS registros (
+                id SERIAL PRIMARY KEY,
+                temperatura NUMERIC(5,2),
+                humedad NUMERIC(5,2),
+                fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('Database initialized successfully');
+    } catch (err) {
+        console.error('Error initializing database:', err);
+    }
+};
 
 // Add proper error handling for database connection
 pool.connect()
-    .then(() => console.log('Connected to PostgreSQL database'))
+    .then(() => {
+        console.log('Connected to PostgreSQL database');
+        return initializeDatabase();
+    })
     .catch(err => console.error('Error connecting to database:', err));
 
 // Recibir datos del ESP32
@@ -40,7 +60,8 @@ app.post('/sensor-data', (req, res) => {
 });
 
 app.get('/sensor-data', (req, res) => {
-    pool.query('SELECT * FROM registros ORDER BY fecha DESC LIMIT 20')
+    // Change 'fecha' to 'fecha_hora' to match the table schema
+    pool.query('SELECT * FROM registros ORDER BY fecha_hora DESC LIMIT 20')
         .then(result => res.json(result.rows))
         .catch(err => res.status(500).send(err));
 });
