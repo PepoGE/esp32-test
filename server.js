@@ -105,5 +105,47 @@ app.get('/temperature-daily', (req, res) => {
         .catch(err => res.status(500).send(err));
 });
 
+// Endpoint para insertar datos de prueba
+app.post('/populate-sample-data', async (req, res) => {
+    try {
+        const sampleData = [];
+
+        // Generar datos para los últimos 5 días
+        for (let day = 4; day >= 0; day--) {
+            for (let hour = 0; hour < 24; hour += 2) { // Cada 2 horas
+                for (let minute = 0; minute < 60; minute += 30) { // Cada 30 minutos
+                    const fecha = new Date();
+                    fecha.setDate(fecha.getDate() - day);
+                    fecha.setHours(hour, minute, 0, 0);
+
+                    // Temperatura variable según la hora (más alta en el día, más baja en la noche)
+                    const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
+                    const temperatura = (baseTemp + (Math.random() - 0.5) * 4).toFixed(2);
+
+                    // Humedad variable (inversamente relacionada con temperatura)
+                    const humedad = (70 - (parseFloat(temperatura) - 20) * 2 + (Math.random() - 0.5) * 10).toFixed(2);
+
+                    sampleData.push([temperatura, humedad, fecha]);
+                }
+            }
+        }
+
+        // Insertar todos los datos
+        const insertPromises = sampleData.map(data =>
+            pool.query('INSERT INTO registros (temperatura, humedad, fecha_hora) VALUES ($1, $2, $3)', data)
+        );
+
+        await Promise.all(insertPromises);
+
+        res.json({
+            message: 'Datos de prueba insertados exitosamente',
+            count: sampleData.length
+        });
+    } catch (err) {
+        console.error('Error inserting sample data:', err);
+        res.status(500).json({ error: 'Error al insertar datos de prueba' });
+    }
+});
+
 app.listen(process.env.PORT || 3000, () =>
     console.log(`Servidor corriendo en http://localhost:${process.env.PORT || 3000}`));
