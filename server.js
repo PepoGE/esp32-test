@@ -29,18 +29,6 @@ const initializeDatabase = async () => {
             )
         `);
 
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS eventos_ventiladores (
-                id SERIAL PRIMARY KEY,
-                ventilador1 BOOLEAN,
-                ventilador2 BOOLEAN,
-                ventilador3 BOOLEAN,
-                temperatura NUMERIC(5,2),
-                evento_descripcion TEXT,
-                fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
         console.log('Database initialized successfully');
     } catch (err) {
         console.error('Error initializing database:', err);
@@ -79,20 +67,40 @@ app.get('/sensor-data', (req, res) => {
         .catch(err => res.status(500).send(err));
 });
 
-// Recibir eventos de ventiladores del ESP32
-app.post('/fan-events', (req, res) => {
-    const { ventilador1, ventilador2, ventilador3, temperatura, evento_descripcion } = req.body;
+// Promedio de temperatura por horas (últimas 24 horas)
+app.get('/temperature-hourly', (req, res) => {
+    const query = `
+        SELECT 
+            DATE_TRUNC('hour', fecha_hora) as hora,
+            ROUND(AVG(temperatura), 2) as promedio_temperatura,
+            COUNT(*) as total_registros
+        FROM registros 
+        WHERE fecha_hora >= NOW() - INTERVAL '24 hours'
+        GROUP BY DATE_TRUNC('hour', fecha_hora)
+        ORDER BY hora DESC
+    `;
 
-    const query = `INSERT INTO eventos_ventiladores (ventilador1, ventilador2, ventilador3, temperatura, evento_descripcion) 
-                   VALUES ($1, $2, $3, $4, $5)`;
-
-    pool.query(query, [ventilador1, ventilador2, ventilador3, temperatura, evento_descripcion])
-        .then(() => res.send('Evento de ventilador guardado'))
+    pool.query(query)
+        .then(result => res.json(result.rows))
         .catch(err => res.status(500).send(err));
 });
 
-app.get('/fan-events', (req, res) => {
-    pool.query('SELECT * FROM eventos_ventiladores ORDER BY fecha_hora DESC LIMIT 50')
+// Promedio de temperatura por días (últimos 30 días)
+app.get('/temperature-daily', (req, res) => {
+    const query = `
+        SELECT 
+            DATE_TRUNC('day', fecha_hora) as dia,
+            ROUND(AVG(temperatura), 2) as promedio_temperatura,
+            ROUND(MIN(temperatura), 2) as temperatura_minima,
+            ROUND(MAX(temperatura), 2) as temperatura_maxima,
+            COUNT(*) as total_registros
+        FROM registros 
+        WHERE fecha_hora >= NOW() - INTERVAL '30 days'
+        GROUP BY DATE_TRUNC('day', fecha_hora)
+        ORDER BY dia DESC
+    `;
+
+    pool.query(query)
         .then(result => res.json(result.rows))
         .catch(err => res.status(500).send(err));
 });
