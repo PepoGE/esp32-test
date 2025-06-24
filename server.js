@@ -5,7 +5,15 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// Configure CORS properly
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://esp32-test-kdfg.onrender.com', 'http://localhost:5173', 'http://localhost:3001'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
 app.use(bodyParser.json());
 
 // PostgreSQL connection pool
