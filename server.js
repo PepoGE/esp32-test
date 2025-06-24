@@ -119,11 +119,16 @@ app.post('/populate-sample-data', async (req, res) => {
                     fecha.setHours(hour, minute, 0, 0);
 
                     // Temperatura variable según la hora (más alta en el día, más baja en la noche)
-                    const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
-                    const temperatura = (baseTemp + (Math.random() - 0.5) * 4).toFixed(2);
+                    const baseTemp = 26.5 + Math.sin((hour - 6) * Math.PI / 12) * 6.5; // Rango base 20-33
+                    const randomVariation = (Math.random() - 0.5) * 2; // ±1 grado de variación
+                    let temperatura = baseTemp + randomVariation;
+
+                    // Asegurar que esté dentro del rango 19-34
+                    temperatura = Math.max(19, Math.min(34, temperatura));
+                    temperatura = temperatura.toFixed(2);
 
                     // Humedad variable (inversamente relacionada con temperatura)
-                    const humedad = (70 - (parseFloat(temperatura) - 20) * 2 + (Math.random() - 0.5) * 10).toFixed(2);
+                    const humedad = (70 - (parseFloat(temperatura) - 26.5) * 1.5 + (Math.random() - 0.5) * 10).toFixed(2);
 
                     sampleData.push([temperatura, humedad, fecha]);
                 }
